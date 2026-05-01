@@ -1,0 +1,17 @@
+{
+  "title": "RQ3 ablation (fill paths after each training run)",
+  "variants": [
+    {
+      "label": "PonziSense (full)",
+      "rq1_json": "outputs/logs/experiments/rq1_main_metrics_test.json",
+      "rq2_overlap_json": "outputs/logs/experiments/rq2_overlap_test.json",
+      "rq2_fd_json": "outputs/logs/experiments/rq2_fd_arl_test.json"
+    },
+    {
+      "label": "w/o Explainer",
+      "rq1_json": "outputs/logs/experiments/rq1_main_metrics_test.json",
+      "rq2_overlap_json": "outputs/logs/experiments/rq2_overlap_test.json",
+      "rq2_fd_json": "outputs/logs/experiments/rq2_fd_arl_test.json"
+    }
+  ]
+}
