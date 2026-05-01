@@ -1,0 +1,29 @@
+# Runtime outputs
+outputs/
+datafiles/processed/
+datafiles/PonziDataset_20221114_explain_augmented_negatives.csv
+datafiles/materialize_report.json
+
+# Generated parser binary
+parser/my-languages.so
+
+# Python/cache
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.env
+.cache/
+.pytest_cache/
+
+# Large model/checkpoint artifacts
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
