@@ -196,13 +196,7 @@ Run paper experiment helpers:
 bash experiments/run_all_experiments.sh
 ```
 
-Run classical baselines:
 
-```bash
-cd baseline
-bash run_all_baselines.sh
-cd ..
-```
 
 ## Configuration
 
@@ -253,7 +247,6 @@ experiments/rq5/    embedding visualization
 
 ```text
 PonziSense/
-├── baseline/                 # Classical ML baselines
 ├── configs/                  # Paper-aligned configuration
 ├── data/                     # Dataset, parser, collation, augmentation
 ├── datafiles/                # Source-free release dataset index
