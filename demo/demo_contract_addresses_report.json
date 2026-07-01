@@ -1,0 +1,18 @@
+{
+  "output_csv": "demo/demo_contract_addresses.csv",
+  "rows": 20,
+  "label_counts": {
+    "Ponzi": 10,
+    "Non-Ponzi": 10
+  },
+  "all_predicted_correct": true,
+  "unique_metric_signatures": 20,
+  "selection_basis": [
+    "Positive demo samples are real addresses from PonziDataset_20221114.csv joined with explain.csv by stable row order.",
+    "Negative demo samples are real valid-address rows from ponzi_e_constructed metadata, primarily Sourcify verified mainnet contracts.",
+    "Candidates were scored by the current outputs/checkpoints/best_model.pt via PonziInferenceEngine.predict_proba().",
+    "Final samples require correct prediction, high class confidence, and non-duplicated explanation metric signatures.",
+    "The CSV intentionally excludes source code and stores only address-level demo metadata and metrics."
+  ],
+  "generated_at": "2026-06-03 03:09:46 UTC"
+}

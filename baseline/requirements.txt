@@ -1,0 +1,2 @@
+# 与根目录 scikit-learn / pandas / numpy 配合使用
+xgboost>=2.0.0

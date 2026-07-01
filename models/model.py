@@ -88,8 +88,29 @@ class PonziModel(nn.Module):
         loss = (p * (torch.log(p + 1e-12) - torch.log(q + 1e-12))).sum(dim=-1).mean()
         return loss.to(contract_cls.dtype)
 
-    def forward(self, input_ids, position_idx, attn_mask, labels=None):
-        return self.forward_contract(input_ids, position_idx, attn_mask, labels)
+    def forward(
+        self,
+        input_ids,
+        position_idx,
+        attn_mask,
+        labels=None,
+        graph_adj=None,
+        graph_mask=None,
+        statements=None,
+        codes=None,
+        tokenizer=None,
+    ):
+        return self.forward_contract(
+            input_ids,
+            position_idx,
+            attn_mask,
+            labels=labels,
+            graph_adj=graph_adj,
+            graph_mask=graph_mask,
+            statements=statements,
+            codes=codes,
+            tokenizer=tokenizer,
+        )
 
     def _roberta_outputs(
         self,

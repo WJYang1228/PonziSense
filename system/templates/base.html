@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="{{ html_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ product_name | default(t('product.short_name')) }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ app_url('static', filename='style.css') }}">
+</head>
+<body class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <a class="brand-logo-wrap" href="{{ app_url('portal.dashboard') }}" aria-label="NTU Digital Trust Centre">
+                <img class="brand-logo" src="{{ app_url('static', filename='ntu_logo.png') }}" alt="NTU-DTC logo">
+            </a>
+            <div class="brand-line">
+                <span class="brand-mark">{{ product_code | default('SCRA') }}</span>
+                <div class="brand-text">
+                    <strong>{{ product_name | default(t('product.short_name')) }}</strong>
+                    <span class="brand-ver">v{{ app_version | default('1.0.0') }} · {{ app_env | default('dev') }}</span>
+                </div>
+            </div>
+        </div>
+        <nav class="nav">
+            <a class="nav-item {% if nav_active == 'dashboard' %}active{% endif %}" href="{{ app_url('portal.dashboard') }}">{{ t('nav.dashboard') }}</a>
+            <a class="nav-item {% if nav_active == 'analysis' %}active{% endif %}" href="{{ app_url('analysis.workspace') }}">{{ t('nav.analysis') }}</a>
+            <span class="nav-section">{{ t('nav.system') }}</span>
+            <a class="nav-item {% if nav_active == 'about' %}active{% endif %}" href="{{ app_url('system.about') }}">{{ t('nav.about') }}</a>
+            <a class="nav-item" href="{{ app_url('system.health') }}" target="_blank" rel="noopener">{{ t('nav.health') }}</a>
+        </nav>
+        <div class="language-switch" aria-label="{{ t('language.selector') }}">
+            <span class="language-switch-title">{{ t('language.label') }}</span>
+            <div class="language-options">
+                {% for lang in language_options %}
+                <a class="language-choice {% if lang.code == ui_lang %}active{% endif %}" href="{{ language_url(lang.code) }}" lang="{{ lang.html_lang }}">{{ lang.label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <p class="sidebar-foot">{{ legal_disclaimer | default('') }}</p>
+    </aside>
+    <div class="main-wrap">
+        <header class="topbar">
+            <div class="topbar-title">{% block header_title %}{{ t('topbar.default') }}{% endblock %}</div>
+            <div class="topbar-meta">{% block header_meta %}{% endblock %}</div>
+        </header>
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -16,7 +16,7 @@ import numpy as np
 from configs.config import Config
 from utils.statements import is_trivial_statement, split_solidity_statements
 
-_ID_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_\.]*")
+_ID_RE = re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_\.]*\b")
 _ASSIGN_RE = re.compile(r"(?<![=!<>])=(?!=)")
 
 _KEYWORDS = {

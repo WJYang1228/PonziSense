@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set nav_active = 'analysis' %}
+{% block title %}{{ t('analysis.title') }} — {{ product_name }}{% endblock %}
+{% block header_title %}{{ t('analysis.title') }}{% endblock %}
+{% block header_meta %}{{ t('analysis.meta') }}{% endblock %}
+{% block content %}
+<section class="panel">
+    <h2 class="panel-title">{{ t('analysis.submit.title') }}</h2>
+    <p class="panel-hint">{{ t('analysis.submit.hint') }}</p>
+    <form method="post" class="analysis-form">
+        <textarea name="code" placeholder="{{ t('analysis.code.placeholder') }}" rows="18">{{ code }}</textarea>
+        <div class="form-row">
+            <label>{{ t('analysis.topk.label') }} <input type="number" name="top_k" min="1" max="20" value="{{ top_k }}"></label>
+            <button type="submit" class="btn-primary">{{ t('analysis.run') }}</button>
+        </div>
+    </form>
+</section>
+
+{% if error %}
+<section class="panel panel-error">
+    <h2 class="panel-title">{{ t('analysis.failed') }}</h2>
+    <pre class="error-text">{{ error }}</pre>
+</section>
+{% endif %}
+
+{% if result %}
+<section id="module-risk" class="panel panel-accent">
+    <div class="panel-head">
+        <span class="module-tag">{{ t('analysis.risk.tag') }}</span>
+        <h2 class="panel-title">{{ t('analysis.risk.title') }}</h2>
+    </div>
+    <div class="metrics-row">
+        <div class="metric-tile">
+            <span class="metric-label">{{ t('analysis.risk.label') }}</span>
+            <span class="metric-value {% if result.risk.label == 'Ponzi' %}risk-high{% else %}risk-low{% endif %}">{{ result.risk.label }}</span>
+        </div>
+        <div class="metric-tile">
+            <span class="metric-label">{{ t('analysis.risk.probability') }}</span>
+            <span class="metric-value">{{ "%.4f"|format(result.risk.ponzi_probability) }}</span>
+        </div>
+        <div class="metric-tile">
+            <span class="metric-label">{{ t('analysis.risk.threshold') }}</span>
+            <span class="metric-value muted">{{ "%.4f"|format(result.risk.decision_threshold) }}</span>
+        </div>
+    </div>
+    {% if result.risk.class_probabilities and result.risk.class_probabilities|length >= 2 %}
+    <p class="fine-print">{{ t('analysis.softmax') }}: Non-Ponzi {{ "%.4f"|format(result.risk.class_probabilities[0]) }} · Ponzi {{ "%.4f"|format(result.risk.class_probabilities[1]) }}</p>
+    {% endif %}
+</section>
+
+<section id="module-explainability" class="panel">
+    <div class="panel-head">
+        <span class="module-tag">{{ t('analysis.explain.tag') }}</span>
+        <h2 class="panel-title">{{ result.explainability.module_name }}</h2>
+    </div>
+    <p class="panel-hint">{{ t('analysis.explain.hint', top_k=result.explainability.top_k) }}</p>
+    {% if result.explainability.statements %}
+    <ul class="explain-list">
+        {% for item in result.explainability.statements %}
+        <li>
+            <div class="explain-head">
+                <span>{{ t('analysis.statement', stmt_id=item.stmt_id) }}</span>
+                <span>{{ t('analysis.line_range', start=item.start_line, end=item.end_line) }}</span>
+                <span class="score">{{ t('analysis.score', score="%.4f"|format(item.score)) }}</span>
+            </div>
+            <pre class="explain-body">{{ item.text }}</pre>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-state">{{ t('analysis.empty') }}</p>
+    {% endif %}
+</section>
+
+<section id="module-source" class="panel panel-dark">
+    <div class="panel-head">
+        <span class="module-tag">{{ t('analysis.source.tag') }}</span>
+        <h2 class="panel-title">{{ t('analysis.source.title') }}</h2>
+    </div>
+    <p class="panel-hint subtle">{{ t('analysis.source.hint', line_count=result.source_view.line_count) }}</p>
+    <div class="code-box">
+        {{ result.source_view.highlighted_html|safe }}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

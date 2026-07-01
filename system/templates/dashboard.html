@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% set nav_active = 'dashboard' %}
+{% block title %}{{ t('dashboard.title') }} — {{ product_name }}{% endblock %}
+{% block header_title %}{{ t('dashboard.title') }}{% endblock %}
+{% block header_meta %}{{ t('dashboard.meta') }}{% endblock %}
+{% block content %}
+<section class="page-intro">
+    <h1>{{ t('dashboard.welcome', product_name=product_name) }}</h1>
+    <p class="lead">{{ t('dashboard.lead') }}</p>
+</section>
+<div class="module-grid">
+    {% for m in modules %}
+    <article class="module-card">
+        <div class="module-card-head">
+            <span class="badge">{{ m.badge }}</span>
+            <h2>{{ m.title }}</h2>
+        </div>
+        <p class="module-desc">{{ m.desc }}</p>
+        <a class="module-link" href="{{ m.href }}">{{ t('common.enter_module') }}</a>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

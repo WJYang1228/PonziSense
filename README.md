@@ -1,271 +1,226 @@
-﻿# PonziSense
+# PonziSense
 
-**PonziSense** is an explainable detector for Ponzi smart contracts. It follows the paper pipeline: contract-level Ponzi prediction plus source-level rationale extraction, so each positive decision can be traced back to suspicious Solidity statements such as participant registration, payout conditions, reward transfer, and owner-fee extraction.
+PonziSense is an explainable framework for detecting Ponzi smart contracts and returning source-grounded risk evidence. This repository is a lightweight reproduction package: it keeps the core implementation needed to reproduce the paper pipeline, while excluding private datasets, checkpoints, virtual environments, generated outputs, and internal temporary files.
 
-![PonziSense overview](assets/overall.png)
+![PonziSense overview](figure/overall.png)
 
 ## What This Repository Contains
 
-This open-source package contains only the engineering code needed to reproduce the paper method.
+PonziSense follows the paper workflow shown above:
 
-Included:
+1. Solidity contracts are preprocessed into statement-level units.
+2. Control-flow and data-flow information are extracted to build a program semantic graph.
+3. The semantic contract identifier encodes contract behavior and predicts `Ponzi` or `Non-Ponzi`.
+4. The node-aware rationale extractor perturbs graph evidence and ranks decision-critical statements.
+5. Important graph nodes are mapped back to source-code lines for auditor-facing explanations.
 
-- Core pipeline: `preprocess_dataset.py`, `train.py`, `evaluate.py`, `predict.py`, `inference.py`
-- Model implementation: `models/`, `data/`, `graph/`, `utils/`, `configs/`
-- Program semantic graph and rationale utilities: `graph/`, `utils/rationale_extractor.py`, `utils/explain_metrics.py`
-- Baselines and paper experiment runners: `baseline/`, `experiments/`, `hpo/`
-- Solidity parser source and build script: `parser/tree-sitter-solidity/`, `parser/build.py`
-- Compact source-free dataset index: `datafiles/ponzi_e_release.csv`
+The package is intentionally code-centered. It does not include the full raw Solidity dataset, trained checkpoints, server virtual environments, generated experiment outputs, or internal binary/parser build artifacts.
 
-Intentionally excluded:
+## Repository Layout
 
-- Raw Solidity source-code datasets
-- Generated `datafiles/processed/` train/validation/test splits
-- Checkpoints, `.bin`, `.pt`, `.pth`, `.ckpt`, `.safetensors`, generated parser binaries, logs, and experiment outputs
-- Internal Web/demo/system software
-- Paper LaTeX sources, build artifacts, caches, virtual environments, and notebooks
-
-## Method Overview
-
-PonziSense has three main components.
-
-1. **Semantic Contract Identifier** encodes Solidity source code, learns semantic representations, clusters related behaviors, and predicts `Ponzi` or `Non-Ponzi`.
-2. **Program Semantic Graph Constructor** converts source code into a statement-level semantic graph using control-flow, data-flow, and local dependency information.
-3. **Node-aware Rationale Extractor** estimates statement importance through local perturbation and maps high-impact graph nodes back to source-code lines.
-
-The final output is both a contract-level prediction and a sparse explanation over source statements.
+| Path | Purpose |
+| --- | --- |
+| `train.py` | Main model training entry point. |
+| `evaluate.py` | Evaluation entry point for trained checkpoints. |
+| `predict.py`, `inference.py` | Contract-level prediction and explanation utilities. |
+| `preprocess_dataset.py` | Dataset preprocessing and train/validation/test split generation. |
+| `configs/` | Reproduction constants, paths, labels, and model options. |
+| `data/` | Dataset loading, feature extraction, graph building, tokenization, and batching. |
+| `graph/` | Program semantic graph construction and edge/rationale helpers. |
+| `models/` | Encoder, graph propagation, classifier, and explanation modules. |
+| `parser/` | Solidity parsing and data-flow helpers used by the preprocessing pipeline. |
+| `utils/` | Losses, metrics, perturbation utilities, rationale mapping, and reproducibility helpers. |
+| `scripts/` | Dataset construction and ICSE experiment orchestration scripts. |
+| `experiments/common/` | Shared experiment loaders, inference wrappers, plotting, and output helpers. |
+| `experiments/icse/` | Paper-oriented reproduction scripts for audit, ablation, robustness, faithfulness, and efficiency. |
+| `experiments/case_study/` | Case-study rendering and latency utilities. |
+| `baseline/` | Lightweight classical baseline code. |
+| `system/` | Optional Flask web system for interactive analysis and bilingual demonstration. |
+| `demo/` | Address-level demo metadata; Solidity source code is not included. |
+| `figure/overall.png` | Project overview figure used by this README. |
+| `datafiles/` | Placeholder for user-restored datasets. |
+| `outputs/` | Placeholder for checkpoints, logs, tables, and generated experiment outputs. |
 
 ## Environment Setup
 
-Recommended environment:
-
-- Python 3.10 or 3.11
-- CUDA-capable GPU for full training
-- Linux/macOS shell environment
-- `gcc`/build tools for tree-sitter parser compilation
-
-Create an environment and install dependencies:
+The recommended setup is a Python virtual environment with PyTorch, Transformers, PyTorch Geometric, Tree-sitter, Flask, and the scientific Python stack.
 
 ```bash
-conda create -n ponzisense python=3.10 -y
-conda activate ponzisense
-pip install -r requirements.txt
+cd PonziSense_repro
+bash setup_environment.sh
+source .venv_linux/bin/activate
 ```
 
-Build the Solidity parser binary locally:
+On an A100/CUDA server, load the server CUDA compatibility script before training when available:
 
 ```bash
-cd parser
-python build.py
-cd ..
+source /etc/profile.d/a100_cuda.sh
 ```
 
-The build step creates `parser/my-languages.so`. This generated binary is intentionally not committed.
-
-Optional baseline dependencies:
+If PyTorch is already installed at the system level, reuse it instead of reinstalling:
 
 ```bash
-pip install -r baseline/requirements.txt
-pip install -r experiments/requirements-optional.txt
+INSTALL_TORCH=0 bash setup_environment.sh
 ```
 
-## Dataset
+For a quick dependency check:
 
-The released dataset is:
-
-```text
-datafiles/ponzi_e_release.csv
+```bash
+bash setup_environment.sh --check-only
 ```
 
-It contains `8,233` contracts:
+## Dataset Preparation
 
-| Split | Non-Ponzi (`0`) | Ponzi (`1`) | Total |
-| --- | ---: | ---: | ---: |
-| train | 4,493 | 446 | 4,939 |
-| val | 1,498 | 149 | 1,647 |
-| test | 1,498 | 149 | 1,647 |
-| total | 7,489 | 744 | 8,233 |
-
-Columns:
-
-| Column | Description |
-| --- | --- |
-| `contract_id` | Stable row identifier in the released benchmark index |
-| `address` | Ethereum contract address |
-| `code_hash` | Irreversible hash of the original source snapshot, used for audit and deduplication |
-| `label` | `1` for Ponzi, `0` for non-Ponzi |
-| `explain` | Source-level rationale text for positive examples when available in the benchmark construction |
-| `split` | Paper-style `train`, `val`, or `test` split |
-| `source` | Provenance of the row in the construction pipeline |
-| `explain_source` | Provenance of the explanation field |
-
-### Why Source Code Is Removed
-
-GitHub is not a good place to publish the full raw Solidity source snapshot because it is large, redundant, and may include third-party source files with mixed licensing or provenance. To keep the repository lightweight and safer to redistribute, the public CSV removes the `code` column and keeps contract addresses instead.
-
-This does not change the label convention or split assignment. It only means the release CSV is a compact benchmark index, not a directly trainable source-code table.
-
-### How To Restore A Trainable Dataset
-
-To train PonziSense, `preprocess_dataset.py` expects a CSV with exactly these columns:
+The full paper dataset is not included in this lightweight release. The expected training format is a CSV file with at least:
 
 ```text
 code,label,explain
 ```
 
-You can recover source code for address-backed contracts from public verification services:
+where `code` is Solidity source code, `label` is `1` for Ponzi and `0` for non-Ponzi, and `explain` stores source-level rationale annotations or evidence text when available.
 
-```bash
-python scripts/materialize_dataset_from_addresses.py \
-  --input datafiles/ponzi_e_release.csv \
-  --output datafiles/PonziDataset_20221114_explain_augmented_negatives.csv
+For public artifact release, the dataset should be distributed in a slim address-level format such as:
+
+```text
+address,label,explain,split,source,hash
 ```
 
-The script tries Sourcify first. If you also want Etherscan fallback, set an API key:
-
-```bash
-export ETHERSCAN_API_KEY=your_key_here
-python scripts/materialize_dataset_from_addresses.py \
-  --input datafiles/ponzi_e_release.csv \
-  --output datafiles/PonziDataset_20221114_explain_augmented_negatives.csv
-```
-
-After materialization, run preprocessing:
+This keeps the repository small and avoids redistributing large raw source-code fields. Users can restore the `code` column from verified public sources such as Etherscan, Sourcify, or an institutional archive, then run preprocessing:
 
 ```bash
 python preprocess_dataset.py
 ```
 
-This creates:
+The processed files are expected under:
 
 ```text
 datafiles/processed/train.csv
 datafiles/processed/val.csv
 datafiles/processed/test.csv
-datafiles/processed/report.json
 ```
 
-If you already have a private full dataset, place it at:
-
-```text
-datafiles/PonziDataset_20221114_explain_augmented_negatives.csv
-```
-
-and make sure it has `code,label,explain` columns.
-
-## Quick Start
-
-Run the full local pipeline after source-code materialization:
+To construct the paper-style Ponzi-E dataset from local positive contracts and supplemented non-Ponzi contracts, use:
 
 ```bash
+python scripts/build_ponzi_e_dataset.py
+python scripts/preprocess_ponzi_e_constructed.py \
+  --input datafiles/ponzi_e_constructed/ponzi_e_real_contracts.csv \
+  --output-dir datafiles/processed_ponzi_e
+```
+
+## Training
+
+Single-GPU training:
+
+```bash
+python train.py
+```
+
+Dual-GPU distributed training:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=2 train.py
+```
+
+The default code writes checkpoints and logs under `outputs/`. The expected best checkpoint path is:
+
+```text
+outputs/checkpoints/best_model.pt
+```
+
+## Evaluation and ICSE Experiments
+
+Evaluate a trained model:
+
+```bash
+python evaluate.py
+```
+
+Run the ICSE reproduction suite after preparing data and a checkpoint:
+
+```bash
+TEST_PATH=datafiles/processed_ponzi_e/test.csv \
+CHECKPOINT=outputs/checkpoints/best_model.pt \
+OUTPUT_DIR=outputs \
+bash scripts/run_icse_experiments.sh
+```
+
+The ICSE scripts cover:
+
+| Script | Purpose |
+| --- | --- |
+| `run_dataset_audit.py` | Dataset size, label, duplication, and split diagnostics. |
+| `run_dataset_stress_eval.py` | Dataset stress evaluation and shift checks. |
+| `run_graph_component_ablation.py` | CFG/DFG/semantic-edge component ablation. |
+| `run_mechanism_role_coverage.py` | Mechanism-role coverage for source-level rationales. |
+| `run_syntax_preserving_faithfulness.py` | Faithfulness under syntax-preserving perturbations. |
+| `run_refactor_robustness.py` | Transformation sensitivity checks. |
+| `run_efficiency_benchmark.py` | Runtime and throughput measurements. |
+| `collect_icse_results.py` | Aggregates JSON outputs into a single result bundle. |
+
+## Interactive System
+
+The optional web system provides a lightweight interface for contract analysis, explanation display, source-line mapping, and bilingual English/Chinese UI.
+
+```bash
+python -m system
+```
+
+or:
+
+```bash
+./run_web.sh
+```
+
+Useful environment variables:
+
+| Variable | Meaning |
+| --- | --- |
+| `PONZI_HOST` | Flask host, default `0.0.0.0`. |
+| `PONZI_PORT` | Flask port, default `7860`. |
+| `PONZI_CKPT` | Override checkpoint path. |
+| `PONZI_DEFAULT_LANGUAGE` | UI language, `en` or `zh`. |
+| `PONZI_EXPLAIN_TOP_K` | Number of explanation items to display. |
+
+## Reproducibility Notes
+
+This package keeps the implementation required to reproduce the paper logic, but several artifacts must be restored by the user:
+
+1. Raw Solidity source code or a restored source-code CSV.
+2. Trained model checkpoints.
+3. Generated experiment outputs and logs.
+4. Server-specific CUDA/runtime configuration.
+
+The following items were intentionally excluded from this cleaned package:
+
+1. Virtual environments: `.venv`, `.venv_linux`.
+2. Caches and compiled Python files: `.cache`, `__pycache__`.
+3. Full raw datasets and processed full-source CSV files.
+4. Model checkpoints and generated output tables.
+5. Temporary patches, backup files, and internal paper LaTeX folders.
+6. Binary parser artifacts such as `my-languages.so`.
+
+## Minimal Reproduction Flow
+
+```bash
+cd PonziSense_repro
+bash setup_environment.sh
+source .venv_linux/bin/activate
+
+# Restore or prepare data first.
 python preprocess_dataset.py
-python sanity_check.py
+
+# Train and evaluate.
 python train.py
 python evaluate.py
+
+# Run paper-oriented experiments.
+TEST_PATH=datafiles/processed/test.csv \
+CHECKPOINT=outputs/checkpoints/best_model.pt \
+OUTPUT_DIR=outputs \
+bash scripts/run_icse_experiments.sh
 ```
 
-Run prediction/inference examples:
+## Citation
 
-```bash
-python predict.py
-python inference.py
-```
-
-## Training Shortcuts
-
-One-command training flow:
-
-```bash
-python scripts/materialize_dataset_from_addresses.py \
-  --input datafiles/ponzi_e_release.csv \
-  --output datafiles/PonziDataset_20221114_explain_augmented_negatives.csv && \
-python preprocess_dataset.py && \
-python train.py && \
-python evaluate.py
-```
-
-Use a specific GPU:
-
-```bash
-CUDA_VISIBLE_DEVICES=0 python train.py
-```
-
-Run paper experiment helpers:
-
-```bash
-bash experiments/run_all_experiments.sh
-```
-
-
-
-## Configuration
-
-Main settings live in `configs/config.py`.
-
-Important defaults:
-
-- `POSITIVE_LABEL = 1`
-- `PONZI_E_TOTAL_CONTRACTS = 8233`
-- `PONZI_E_POSITIVE_CONTRACTS = 744`
-- `PONZI_E_NEGATIVE_CONTRACTS = 7489`
-- `TRAIN_RATIO = 0.60`, `VAL_RATIO = 0.20`, `TEST_RATIO = 0.20`
-- `MODEL_NAME = microsoft/graphcodebert-base`
-- `USE_GRAPH_BRANCH = True`
-- `EXPLAIN_EVAL_USE_PERTURBATION = True`
-
-For smaller GPUs, reduce these before training:
-
-```python
-TRAIN_BATCH_SIZE = 1
-EVAL_BATCH_SIZE = 2
-CODE_LENGTH = 256
-DATA_FLOW_LENGTH = 64
-GRAPH_MAX_STATEMENTS = 16
-```
-
-## Evaluation
-
-Main evaluation:
-
-```bash
-python evaluate.py
-```
-
-The project reports contract-level classification metrics and source-level explanation metrics. The paper-style explanation evaluation is implemented in `utils/explain_metrics.py` and `utils/rationale_extractor.py`.
-
-Experiment scripts are grouped by research question:
-
-```text
-experiments/rq1/    main detection metrics
-experiments/rq2/    explanation faithfulness and overlap
-experiments/rq3/    ablation plotting
-experiments/rq4/    threshold and robustness studies
-experiments/rq5/    embedding visualization
-```
-
-## Repository Layout
-
-```text
-PonziSense/
-├── configs/                  # Paper-aligned configuration
-├── data/                     # Dataset, parser, collation, augmentation
-├── datafiles/                # Source-free release dataset index
-├── experiments/              # RQ-oriented experiment scripts
-├── graph/                    # Program semantic graph construction
-├── hpo/                      # Hyperparameter search helpers
-├── models/                   # PonziSense model components
-├── parser/                   # Solidity tree-sitter parser source and build script
-├── scripts/                  # Dataset construction/materialization utilities
-├── utils/                    # Metrics, losses, rationale extraction, IO helpers
-├── preprocess_dataset.py
-├── train.py
-├── evaluate.py
-├── predict.py
-└── inference.py
-```
-
-## Notes
-
-The compact dataset is designed for open-source distribution. Exact reproduction of a private full-source snapshot requires materializing source code by address or using an already available full `code,label,explain` CSV.
-
-PonziSense follows the paper convention throughout the released code: `label=1` means Ponzi and `label=0` means non-Ponzi.
+If you use this artifact, cite the PonziSense paper and describe the exact dataset restoration procedure used for the released address-level dataset.

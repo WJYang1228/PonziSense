@@ -1,10 +1,17 @@
-# Ponzi-E Release Dataset
+# Dataset Placeholder
 
-This directory contains a compact, source-free release view of the Ponzi-E benchmark.
+This directory is intentionally empty in the lightweight release.
 
-- `ponzi_e_release.csv`: 8,233 rows with `contract_id`, `address`, `code_hash`, `label`, `explain`, `split`, `source`, and `explain_source`.
-- `ponzi_e_release_report.json`: counts and address-coverage audit.
+Restore the raw or address-resolved dataset here, then run:
 
-The Solidity `code` column is intentionally removed. Each row keeps a contract `address` plus `code_hash`, an irreversible identifier for audit and deduplication.
+```bash
+python preprocess_dataset.py
+```
 
-Label convention: `label=1` is Ponzi and `label=0` is non-Ponzi.
+Expected processed outputs:
+
+```text
+datafiles/processed/train.csv
+datafiles/processed/val.csv
+datafiles/processed/test.csv
+```

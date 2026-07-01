@@ -1,29 +1,48 @@
-# Runtime outputs
-outputs/
-datafiles/processed/
-datafiles/PonziDataset_20221114_explain_augmented_negatives.csv
-datafiles/materialize_report.json
-
-# Generated parser binary
-parser/my-languages.so
-
-# Python/cache
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
+
+# Virtual environments
 .venv/
-.env
+.venv_linux/
+.venv_cpu/
+venv/
+
+# Caches
 .cache/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
-# Large model/checkpoint artifacts
-*.bin
+# Data and generated artifacts
+datafiles/**/*.csv
+datafiles/**/*.json
+datafiles/**/*.pt
+outputs/**
+!outputs/
+!outputs/README.md
+
+# Model/checkpoint artifacts
 *.pt
 *.pth
 *.ckpt
-*.safetensors
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
 *.zip
-*.tar
-*.tar.gz
-*.rar
-*.7z
+
+# Internal or generated binary parser files
+*.so
+*.dll
+*.dylib
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

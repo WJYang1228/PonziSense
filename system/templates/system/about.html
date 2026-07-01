@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% set nav_active = 'about' %}
+{% block title %}{{ t('about.title') }} — {{ product_name }}{% endblock %}
+{% block header_title %}{{ t('about.header') }}{% endblock %}
+{% block content %}
+<section class="panel">
+    <h2 class="panel-title">{{ t('about.product.title') }}</h2>
+    <dl class="meta-list">
+        <dt>{{ t('about.name') }}</dt><dd>{{ product_name }}</dd>
+        <dt>{{ t('about.code') }}</dt><dd>{{ product_code }}</dd>
+        <dt>{{ t('about.version') }}</dt><dd>{{ app_version }}</dd>
+        <dt>{{ t('about.environment') }}</dt><dd>{{ app_env }}</dd>
+    </dl>
+</section>
+<section class="panel">
+    <h2 class="panel-title">{{ t('about.compliance.title') }}</h2>
+    <p class="lead">{{ legal_disclaimer }}</p>
+    <p class="fine-print">{{ t('about.compliance.note') }}</p>
+</section>
+<section class="panel">
+    <h2 class="panel-title">{{ t('about.ops.title') }}</h2>
+    <p>{{ t('about.ops.text') }} <code>GET {{ app_url('system.health') }}</code> {{ t('about.ops.suffix') }}</p>
+</section>
+{% endblock %}
